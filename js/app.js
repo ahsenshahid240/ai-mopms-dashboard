@@ -21,11 +21,12 @@ else h+='<div class="grid">'+["ESP32 Master","PTA8D08","CVM-C4","RS-485 Field Bu
 content.innerHTML=h;
 }
 function event(x){state.events.unshift(x);state.events=state.events.slice(0,20)}
-function startMotor(){if(!state.remote)return alert("Web control disabled in LOCAL mode.");if(!state.breaker||!state.estop||state.trip)return alert("START blocked: permissive not satisfied.");if(confirm("Start motor simulation?")){state.running=true;state.starts++;event("Remote START accepted");render("Motor Control")}}
+function startMotor(){if(!state.remote)return alert("Web control disabled in LOCAL mode.");if(!state.breaker||!state.estop||state.trip)return alert("START blocked: permissive not satisfied.");if(confirm("Start motor simulation?")){state.running=true;state.starts++;event("Remote START accepted");render("Motor Control");alert("✓ START command accepted\nMotor is RUNNING.")}}
 function stopMotor(){
   state.running=false;
   event("STOP command accepted — contactor command OFF");
   render("Motor Control");
+  alert("✓ STOP command accepted\nMotor is STOPPED.");
 }
 function resetTrip(){if(!state.estop)return alert("Release E-stop first.");state.trip=false;event("Trip reset");render("Motor Control")}
 function toggleMode(){state.remote=!state.remote;event("Mode changed to "+(state.remote?"REMOTE":"LOCAL"));render("Motor Control")}

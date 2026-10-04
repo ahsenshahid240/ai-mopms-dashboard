@@ -9,7 +9,7 @@ function show(t,b){[...nav.children].forEach(x=>x.classList.remove("active"));b.
 function render(t){let d=data(),h=head(t,"AI-MoPMS • 0.5 kW three-phase induction motor");
 if(t==="Overview")h+='<div class="grid">'+metric("Motor State",d.on?"RUNNING":"STOPPED","",d.on?"ok":"danger")+metric("AI Health","94","%","ok")+metric("Speed",d.rpm,"RPM")+metric("Active Power",d.kw,"kW")+metric("Vibration",d.vib,"mm/s")+metric("Field Network","HEALTHY","","ok")+'</div><h3>PT100 Temperatures</h3><div class="grid">'+["DE Bearing","NDE Bearing","Winding U","Winding V","Winding W"].map((x,i)=>metric(x,d.temps[i],"°C")).join("")+"</div>";
 else if(t==="Live SLD")h+='<div class="card sld"><div class="eq">3Φ SUPPLY<br><b>400 V</b></div><div class="line"></div><div class="eq">BREAKER<br><b class="'+(state.breaker?"ok":"danger")+'">'+(state.breaker?"ON":"OFF")+'</b></div><div class="line"></div><div class="eq">CONTACTOR<br><b class="'+(d.on?"ok":"danger")+'">'+(d.on?"CLOSED":"OPEN")+'</b></div><div class="line"></div><div class="eq">MOTOR<br><b>'+d.rpm+' RPM</b></div></div>';
-else if(t==="Motor Control")h+='<div class="grid">'+metric("Motor State",d.on?"RUNNING":"STOPPED","",d.on?"ok":"danger")+metric("Contactor Command",state.running?"ON":"OFF","",state.running?"ok":"danger")+metric("Contactor Feedback",d.on?"CLOSED":"OPEN","",d.on?"ok":"danger")+metric("Control Mode",state.remote?"REMOTE":"LOCAL","",state.remote?"ok":"warn")+metric("Breaker",state.breaker?"ON":"OFF","")+metric("E-Stop",state.estop?"HEALTHY":"ACTIVE","",state.estop?"ok":"danger")+metric("Protection",state.trip?"TRIPPED":"HEALTHY","",state.trip?"danger":"ok")+'</div><div class="card controls"><h3>Motor Commands — Simulation Only</h3><button id="startBtn" class="start" type="button">START</button><button id="stopBtn" class="stop" type="button">STOP</button><button id="resetBtn" class="reset" type="button">RESET TRIP</button><button id="modeBtn" type="button">LOCAL / REMOTE</button></div>';
+else if(t==="Motor Control")h+='<div class="grid">'+metric("Motor State",d.on?"RUNNING":"STOPPED","",d.on?"ok":"danger")+metric("Contactor Command",state.running?"ON":"OFF","",state.running?"ok":"danger")+metric("Contactor Feedback",d.on?"CLOSED":"OPEN","",d.on?"ok":"danger")+metric("Control Mode",state.remote?"REMOTE":"LOCAL","",state.remote?"ok":"warn")+metric("Breaker",state.breaker?"ON":"OFF","")+metric("E-Stop",state.estop?"HEALTHY":"ACTIVE","",state.estop?"ok":"danger")+metric("Protection",state.trip?"TRIPPED":"HEALTHY","",state.trip?"danger":"ok")+'</div><div class="card controls"><h3>Motor Commands — Simulation Only</h3><button class="start" type="button" data-command="start">START</button><button class="stop" type="button" data-command="stop">STOP</button><button class="reset" type="button" data-command="reset">RESET TRIP</button><button type="button" data-command="mode">LOCAL / REMOTE</button></div>';
 else if(t==="Electrical")h+='<div class="grid">'+metric("Line Voltage",d.v,"V")+metric("Current",d.amp,"A")+metric("Active Power",d.kw,"kW")+metric("Power Factor",d.pf)+metric("Frequency",d.hz,"Hz")+metric("Analyzer","CVM-C4","","ok")+"</div>";
 else if(t==="Temperature")h+='<div class="grid">'+["DE Bearing","NDE Bearing","Winding U","Winding V","Winding W"].map((x,i)=>metric(x,d.temps[i],"°C",+d.temps[i]>80?"danger":"ok")).join("")+metric("Acquisition","PTA8D08","","ok")+"</div>";
 else if(t==="Vibration & Speed")h+='<div class="grid">'+metric("Vibration",d.vib,"mm/s","ok")+metric("Motor Speed",d.rpm,"RPM")+metric("Estimated Slip",d.on?((1500-d.rpm)/1500*100).toFixed(2):"0","%")+metric("Mechanical Health","NORMAL","","ok")+"</div>";
@@ -19,12 +19,7 @@ else if(t==="AI Health")h+='<div class="grid">'+metric("Health Score","94","%","
 else if(t==="Reports")h+='<div class="grid">'+metric("Operating Hours","128.4","h")+metric("Starts",state.starts)+metric("Trips",state.trips)+metric("Energy","51.7","kWh")+"</div>";
 else h+='<div class="grid">'+["ESP32 Master","PTA8D08","CVM-C4","RS-485 Field Bus","Delta DOP-107BV","RS-485 HMI Bus","Wi-Fi / Cloud"].map(x=>metric(x,"ONLINE","","ok")).join("")+'</div><div class="card"><h3>Architecture</h3><p>ESP32 is the source of truth. Field Modbus and HMI Modbus use separate RS-485 links. Protection remains deterministic and local. The hardwired NC E-stop is independent of software, HMI, Wi-Fi and AI.</p></div>';
 content.innerHTML=h;
-if(t==="Motor Control"){
-  document.getElementById("startBtn").addEventListener("click",startMotor);
-  document.getElementById("stopBtn").addEventListener("click",stopMotor);
-  document.getElementById("resetBtn").addEventListener("click",resetTrip);
-  document.getElementById("modeBtn").addEventListener("click",toggleMode);
-}}
+}
 function event(x){state.events.unshift(x);state.events=state.events.slice(0,20)}
 function startMotor(){if(!state.remote)return alert("Web control disabled in LOCAL mode.");if(!state.breaker||!state.estop||state.trip)return alert("START blocked: permissive not satisfied.");if(confirm("Start motor simulation?")){state.running=true;state.starts++;event("Remote START accepted");render("Motor Control")}}
 function stopMotor(){
@@ -36,3 +31,16 @@ function resetTrip(){if(!state.estop)return alert("Release E-stop first.");state
 function toggleMode(){state.remote=!state.remote;event("Mode changed to "+(state.remote?"REMOTE":"LOCAL"));render("Motor Control")}
 setInterval(()=>{document.querySelector("#clock").textContent=new Date().toLocaleString()},1000);
 setInterval(()=>{let a=[...nav.children].find(x=>x.classList.contains("active"));if(a&&["Overview","Electrical","Temperature","Vibration & Speed"].includes(a.textContent))render(a.textContent)},1800);
+
+/* Persistent delegated motor-control handler.
+   It survives every content.innerHTML re-render. */
+document.addEventListener("click",function(e){
+  const btn=e.target.closest("[data-command]");
+  if(!btn)return;
+  e.preventDefault();
+  const cmd=btn.dataset.command;
+  if(cmd==="start") startMotor();
+  else if(cmd==="stop") stopMotor();
+  else if(cmd==="reset") resetTrip();
+  else if(cmd==="mode") toggleMode();
+});

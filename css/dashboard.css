@@ -1,1 +1,39 @@
 *{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif;background:#07111d;color:#e8f1f8;display:flex;min-height:100vh}aside{width:250px;background:#0b1725;padding:24px 16px;position:fixed;inset:0 auto 0 0;border-right:1px solid #22364b}aside h1{margin:0;font-size:30px;color:#4bc0ff}aside p{color:#8ca2b8;font-size:13px;margin:4px 0 24px}aside small{position:absolute;bottom:18px;color:#71869a;font-size:10px}nav button{display:block;width:100%;border:0;background:transparent;color:#a9bac9;text-align:left;padding:11px 12px;margin:3px 0;border-radius:7px;cursor:pointer}nav button:hover,nav button.active{background:#142b40;color:white}main{margin-left:250px;width:calc(100% - 250px)}header{height:70px;padding:14px 25px;border-bottom:1px solid #22364b;display:flex;align-items:center;justify-content:space-between;background:#0a1521;position:sticky;top:0;z-index:2}header b{display:block}header span{display:block;color:#7f96aa;font-size:12px;margin-top:5px}#status{color:#52d68a;font-size:12px}section{padding:24px}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px}.card{background:#0d1c2b;border:1px solid #21374b;border-radius:10px;padding:17px}.card h3{font-size:12px;color:#8ca2b8;text-transform:uppercase;margin:0 0 10px}.value{font-size:27px;font-weight:bold}.unit{font-size:12px;color:#8299ad}.ok{color:#54d68a}.warn{color:#ffbd55}.danger{color:#ff6575}.bar{height:7px;background:#1b2b3a;border-radius:5px;margin-top:10px;overflow:hidden}.bar i{display:block;height:100%;background:#4bc0ff}.title{margin:0 0 5px}.sub{color:#849aad;margin:0 0 20px}.controls button{padding:12px 22px;border:0;border-radius:6px;margin:5px;cursor:pointer;font-weight:bold}.start{background:#2fbf71}.stop{background:#e35362;color:white}.reset{background:#e9a73d}.sld{display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap;padding:40px 10px}.eq{padding:20px;background:#11263a;border:2px solid #3c617f;border-radius:9px;text-align:center;min-width:125px}.line{height:5px;width:80px;background:#2eac69}.event{padding:10px;border-bottom:1px solid #203447;color:#9fb2c3}.event b{color:#e9f2f9}@media(max-width:800px){aside{width:70px;padding:15px 7px}aside h1{font-size:13px}aside p,aside small{display:none}nav button{font-size:0;text-align:center}nav button:before{content:"•";font-size:25px}main{margin-left:70px;width:calc(100% - 70px)}header{padding:10px;font-size:12px}.line{width:25px}}
+#menuToggle,#navBackdrop{display:none}
+@media(max-width:800px){
+ body{display:block;overflow-x:hidden}
+ aside{width:270px;padding:22px 16px;transform:translateX(-100%);transition:transform .22s ease;z-index:20;box-shadow:8px 0 24px rgba(0,0,0,.35)}
+ aside.open{transform:translateX(0)}
+ aside h1{font-size:27px}
+ aside p{display:block;margin-bottom:20px}
+ aside small{display:block}
+ nav button{font-size:14px;text-align:left;padding:13px 12px}
+ nav button:before{content:none}
+ #menuToggle{display:block;position:fixed;top:13px;left:12px;z-index:30;width:42px;height:42px;border:1px solid #29435a;border-radius:8px;background:#102337;color:#fff;font-size:22px}
+ #navBackdrop.show{display:block;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:15}
+ main{margin-left:0;width:100%;min-width:0}
+ header{height:auto;min-height:68px;padding:10px 12px 10px 66px;gap:8px;align-items:flex-start}
+ header b{font-size:12px;line-height:1.35;max-width:220px}
+ header span{font-size:10px}
+ #status{font-size:10px;white-space:nowrap;margin-top:2px}
+ section{padding:14px 12px 28px}
+ .title{font-size:22px}
+ .sub{font-size:12px;line-height:1.4;margin-bottom:14px}
+ .grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+ .card{padding:13px;min-width:0;overflow:hidden}
+ .card h3{font-size:10px}
+ .value{font-size:20px;overflow-wrap:anywhere}
+ .unit{font-size:10px}
+ .controls{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:12px}
+ .controls h3{grid-column:1/-1}
+ .controls button{width:100%;min-height:48px;margin:0;padding:10px 5px;font-size:12px}
+ .sld{flex-direction:column;padding:18px 12px;gap:0}
+ .eq{width:100%;min-width:0;padding:15px}
+ .line{width:5px;height:28px}
+ .event{font-size:12px;overflow-wrap:anywhere}
+}
+@media(max-width:390px){
+ .grid{grid-template-columns:1fr}
+ header b{max-width:175px;font-size:11px}
+ #status{font-size:9px}
+}

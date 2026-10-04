@@ -1,5 +1,11 @@
 const tabs=["Overview","Live SLD","Motor Control","Electrical","Temperature","Vibration & Speed","Trends","Alarms & Events","AI Health","Reports","System"];
 let state={running:true,breaker:true,estop:true,trip:false,remote:true,starts:12,trips:1,events:["Dashboard connected","Field RS-485 healthy","System initialized"]};
+const trendDefs={
+ amp:{label:"Current",unit:"A"},kw:{label:"Active Power",unit:"kW"},rpm:{label:"Speed",unit:"RPM"},
+ vib:{label:"Vibration",unit:"mm/s"},de:{label:"DE Bearing",unit:"°C"},nde:{label:"NDE Bearing",unit:"°C"},
+ wu:{label:"Winding U",unit:"°C"},wv:{label:"Winding V",unit:"°C"},ww:{label:"Winding W",unit:"°C"}
+};
+let selectedTrend="amp",trendHistory=[];
 const nav=document.querySelector("#nav"),content=document.querySelector("#content");
 tabs.forEach((t,i)=>{let b=document.createElement("button");b.textContent=t;b.onclick=()=>show(t,b);nav.appendChild(b);if(!i)setTimeout(()=>b.click())});
 function metric(n,v,u="",c=""){return '<div class="card"><h3>'+n+'</h3><div class="value '+c+'">'+v+' <span class="unit">'+u+'</span></div></div>'}
@@ -13,12 +19,13 @@ else if(t==="Motor Control")h+='<div class="grid">'+metric("Motor State",d.on?"R
 else if(t==="Electrical")h+='<div class="grid">'+metric("Line Voltage",d.v,"V")+metric("Current",d.amp,"A")+metric("Active Power",d.kw,"kW")+metric("Power Factor",d.pf)+metric("Frequency",d.hz,"Hz")+metric("Analyzer","CVM-C4","","ok")+"</div>";
 else if(t==="Temperature")h+='<div class="grid">'+["DE Bearing","NDE Bearing","Winding U","Winding V","Winding W"].map((x,i)=>metric(x,d.temps[i],"°C",+d.temps[i]>80?"danger":"ok")).join("")+metric("Acquisition","PTA8D08","","ok")+"</div>";
 else if(t==="Vibration & Speed")h+='<div class="grid">'+metric("Vibration",d.vib,"mm/s","ok")+metric("Motor Speed",d.rpm,"RPM")+metric("Estimated Slip",d.on?((1500-d.rpm)/1500*100).toFixed(2):"0","%")+metric("Mechanical Health","NORMAL","","ok")+"</div>";
-else if(t==="Trends")h+='<div class="card"><h3>Live Trend Preview</h3><p>Telemetry history buffer is ready for connection to the ESP32/API database.</p><div class="bar"><i style="width:'+Math.min(100,+d.vib*18)+'%"></i></div><p>Vibration '+d.vib+' mm/s</p><div class="bar"><i style="width:'+d.temps[2]+'%"></i></div><p>Winding U '+d.temps[2]+' °C</p></div>';
+else if(t==="Trends")h+='<div class="card trend-card"><div class="trend-head"><div><h3>Live Parameter Trend</h3><p>Simulated live history • ready for ESP32/database telemetry</p></div><select id="trendSelect">'+Object.entries(trendDefs).map(([k,v])=>'<option value="'+k+'" '+(k===selectedTrend?'selected':'')+'>'+v.label+'</option>').join("")+'</select></div><div class="trend-readout"><b id="trendValue">--</b> <span id="trendUnit"></span></div><div class="chart-wrap"><canvas id="trendCanvas"></canvas></div><div class="trend-axis"><span>Older</span><span>Last 60 samples</span><span>Now</span></div></div>';
 else if(t==="Alarms & Events")h+='<div class="card"><h3>Event Log</h3>'+state.events.map(x=>'<div class="event"><b>'+new Date().toLocaleTimeString()+'</b> — '+x+'</div>').join("")+"</div>";
 else if(t==="AI Health")h+='<div class="grid">'+metric("Health Score","94","%","ok")+metric("Anomaly Score","6","%","ok")+metric("Thermal","NORMAL","","ok")+metric("Electrical","NORMAL","","ok")+metric("Mechanical","NORMAL","","ok")+'</div><div class="card"><h3>Predictive Maintenance Advisory</h3><p>No critical anomaly detected. AI values are illustrative until the trained diagnostic model and historical database are connected.</p></div>';
 else if(t==="Reports")h+='<div class="grid">'+metric("Operating Hours","128.4","h")+metric("Starts",state.starts)+metric("Trips",state.trips)+metric("Energy","51.7","kWh")+"</div>";
 else h+='<div class="grid">'+["ESP32 Master","PTA8D08","CVM-C4","RS-485 Field Bus","Delta DOP-107BV","RS-485 HMI Bus","Wi-Fi / Cloud"].map(x=>metric(x,"ONLINE","","ok")).join("")+'</div><div class="card"><h3>Architecture</h3><p>ESP32 is the source of truth. Field Modbus and HMI Modbus use separate RS-485 links. Protection remains deterministic and local. The hardwired NC E-stop is independent of software, HMI, Wi-Fi and AI.</p></div>';
 content.innerHTML=h;
+if(t==="Trends"){setTimeout(initTrendChart,0)}
 }
 function event(x){state.events.unshift(x);state.events=state.events.slice(0,20)}
 function startMotor(){if(!state.remote)return alert("Web control disabled in LOCAL mode.");if(!state.breaker||!state.estop||state.trip)return alert("START blocked: permissive not satisfied.");if(confirm("Start motor simulation?")){state.running=true;state.starts++;event("Remote START accepted");render("Motor Control");alert("✓ START command accepted\nMotor is RUNNING.")}}
@@ -45,3 +52,35 @@ document.addEventListener("click",function(e){
   else if(cmd==="reset") resetTrip();
   else if(cmd==="mode") toggleMode();
 });
+
+function sampleTrend(){
+ const d=data(),t=d.temps;
+ return {time:Date.now(),amp:+d.amp,kw:+d.kw,rpm:+d.rpm,vib:+d.vib,de:+t[0],nde:+t[1],wu:+t[2],wv:+t[3],ww:+t[4]};
+}
+function initTrendChart(){
+ const s=document.getElementById("trendSelect");
+ if(!s)return;
+ s.onchange=()=>{selectedTrend=s.value;drawTrendChart()};
+ drawTrendChart();
+}
+function drawTrendChart(){
+ const canvas=document.getElementById("trendCanvas"); if(!canvas)return;
+ const box=canvas.parentElement,r=devicePixelRatio||1,w=Math.max(280,box.clientWidth),h=Math.max(230,box.clientHeight);
+ canvas.width=w*r;canvas.height=h*r;canvas.style.width=w+"px";canvas.style.height=h+"px";
+ const x=canvas.getContext("2d");x.setTransform(r,0,0,r,0,0);x.clearRect(0,0,w,h);
+ const vals=trendHistory.map(p=>p[selectedTrend]); if(!vals.length)return;
+ let min=Math.min(...vals),max=Math.max(...vals);let pad=(max-min)*.18||Math.max(Math.abs(max)*.08,1);min-=pad;max+=pad;
+ const L=48,R=14,T=16,B=30,pw=w-L-R,ph=h-T-B;
+ x.font="11px Arial";x.lineWidth=1;x.strokeStyle="#21374b";x.fillStyle="#8299ad";
+ for(let i=0;i<=4;i++){let y=T+ph*i/4;x.beginPath();x.moveTo(L,y);x.lineTo(w-R,y);x.stroke();let v=max-(max-min)*i/4;x.fillText(v.toFixed(max<10?2:1),4,y+4)}
+ x.beginPath();x.strokeStyle="#4bc0ff";x.lineWidth=2;
+ vals.forEach((v,i)=>{let px=L+(vals.length===1?pw:pw*i/(vals.length-1)),py=T+(max-v)/(max-min)*ph;i?x.lineTo(px,py):x.moveTo(px,py)});x.stroke();
+ const def=trendDefs[selectedTrend],last=vals[vals.length-1];
+ const rv=document.getElementById("trendValue"),ru=document.getElementById("trendUnit");if(rv)rv.textContent=last.toFixed(last<10?2:1);if(ru)ru.textContent=def.unit;
+}
+setInterval(()=>{
+ trendHistory.push(sampleTrend());if(trendHistory.length>60)trendHistory.shift();
+ if(document.getElementById("trendCanvas"))drawTrendChart();
+},1500);
+for(let i=0;i<35;i++)trendHistory.push(sampleTrend());
+window.addEventListener("resize",()=>{if(document.getElementById("trendCanvas"))drawTrendChart()});

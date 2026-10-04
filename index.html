@@ -1,5 +1,5 @@
 <!DOCTYPE html>
 <html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>AI-MoPMS | Motor Protection & Predictive Maintenance</title><link rel="stylesheet" href="css/dashboard.css"></head>
-<body><aside><h1>AI-MoPMS</h1><p>Motor Protection & Monitoring</p><nav id="nav"></nav><small>ESP32 • PTA8D08 • CVM-C4 • DOP-107BV</small></aside>
+<body><button id="menuToggle" aria-label="Open navigation">☰</button><div id="navBackdrop"></div><aside><h1>AI-MoPMS</h1><p>Motor Protection & Monitoring</p><nav id="nav"></nav><small>ESP32 • PTA8D08 • CVM-C4 • DOP-107BV</small></aside>
 <main><header><div><b>AI Enabled Motor Protection, Monitoring & Predictive Maintenance System</b><span id="clock"></span></div><div id="status">● SYSTEM ONLINE</div></header>
-<section id="content"></section></main><script src="js/app.js"></script></body></html>
+<section id="content"></section></main><script src="js/app.js"></script><script>const mt=document.getElementById("menuToggle"),sb=document.querySelector("aside"),bd=document.getElementById("navBackdrop");function closeMenu(){sb.classList.remove("open");bd.classList.remove("show")}mt.onclick=()=>{sb.classList.toggle("open");bd.classList.toggle("show")};bd.onclick=closeMenu;document.getElementById("nav").addEventListener("click",e=>{if(e.target.tagName==="BUTTON"&&innerWidth<=800)closeMenu()});</script></body></html>
